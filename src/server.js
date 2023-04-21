@@ -1,8 +1,7 @@
 import http from 'node:http'
-import { randomUUID } from 'node:crypto'
 import { json } from './middlewares/json.js'
+import { routes } from './routes.js'
 
-const tasks = []
 
 const server = http.createServer(async (req, res) => {
 
@@ -10,21 +9,12 @@ const server = http.createServer(async (req, res) => {
 
     await json(req, res)
     
-    if(method === 'GET' && url === '/tasks') {
-        res.end(JSON.stringify(tasks))
-    }
+    const route = routes.find( route => {
+        return route.method === method && route.patch === url
+    })
 
-    if(method === 'POST' && url === '/tasks') {
-        const { title, description } = req.body
-
-        tasks.push({
-            id: randomUUID(),
-            title,
-            description,
-            created_at: new Date(),
-        })
-
-        res.writeHead(204).end()
+    if(route) {
+        return route.handler(req, res)
     }
 })
 
