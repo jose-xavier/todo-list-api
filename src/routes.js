@@ -8,11 +8,18 @@ export const routes = [
         {
             method: 'GET',
             path: buildRoutePath('/tasks'),
-            handler: (req, res) => {
-                const tasks = database.select('tasks')
-
-                res.end(JSON.stringify(tasks))
-            }
+            handler: (request, response) => {
+            const { search } = request.query;
+        
+            const searchData = search ? {
+                name: search,
+                email: search,
+            } : null;
+        
+            const tasks = database.select('tasks', searchData);
+        
+            return response.end(JSON.stringify(tasks));
+            },
         },
         {
             method: 'POST',
@@ -53,6 +60,16 @@ export const routes = [
                 const { id } = req.params
                 const { title, description } = req.body
 
+                if(!title || !description) {
+                    return res.writeHead(400).end(JSON.stringify({"message": 'title or description are required'}))
+                }
+
+                const [task] = database.select('tasks', { id } )
+
+                if(!task) {
+                    return res.writeHead(404).end()
+                }
+
                 database.update('tasks', id, {
                     title,
                     description,
@@ -61,5 +78,25 @@ export const routes = [
 
                 return res.writeHead(204).end()
             }
-        }
+        },
+        {
+            method: 'PATCH',
+            path: buildRoutePath('/tasks/:id/complete'),
+            handler: (req, res) => {
+              const { id } = req.params
+        
+              const [task] = database.select('tasks', { id })
+        
+              if (!task) {
+                return res.writeHead(404).end()
+              }
+        
+              const isTaskCompleted = !!task.completed_at
+              const completed_at = isTaskCompleted ? null : new Date()
+        
+              database.update('tasks', id, { completed_at })
+        
+              return res.writeHead(204).end()
+            }
+          }
     ]
